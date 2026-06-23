@@ -31,14 +31,21 @@ LANG_WORD_TARGETS = {
         170,
         "135-170 Devanagari Hindi words — aim ~150 (~55-70 sec); full sentences, not headlines",
     ),
+    "te": (
+        120,
+        160,
+        "120-160 Telugu script words (~50-65 sec); full sentences, conversational and engaging Telugu narration",
+    ),
 }
+
 
 # Bilingual presets override per variant; these are fallbacks only.
 DEFAULT_MIN_WORDS = {"hi": 80, "en": 80}
 
 
 def _lang_label(lang: str) -> str:
-    return {"en": "English", "hi": "Hindi (Devanagari script)"}.get(lang, lang)
+    return {"en": "English", "hi": "Hindi (Devanagari script)", "te": "Telugu (Telugu script)"}.get(lang, lang)
+
 
 
 def generate_short_pack(

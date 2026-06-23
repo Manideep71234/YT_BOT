@@ -30,11 +30,26 @@ from __future__ import annotations
 import argparse
 import json
 import os
+
+# Ensure local ffmpeg is in PATH
+ffmpeg_bin = os.path.join(os.path.expanduser("~"), "ffmpeg", "bin")
+if ffmpeg_bin not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = ffmpeg_bin + os.pathsep + os.environ.get("PATH", "")
+
 import random
 import sys
+
+# Force UTF-8 for Windows consoles to avoid charmap encode errors
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr.reconfigure(encoding='utf-8')
+
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
+
 
 from dotenv import load_dotenv
 
@@ -50,6 +65,8 @@ from pipeline.groq_script import generate_short_pack
 from pipeline.images import DEFAULT_NEGATIVE, full_visual_prompt, save_scene_image
 from pipeline.render_short import render_vertical_short
 from pipeline.story_history import save_title
+from pipeline.youtube_analytics import get_authenticated_service, get_top_videos
+
 
 
 def _render_and_upload(
@@ -65,9 +82,11 @@ def _render_and_upload(
     run_dir: Path,
     suffix: str,
     upload: bool,
+    upload_ig: bool,
     privacy: str,
     yt_token_env: str = "YT_REFRESH_TOKEN",
 ) -> Path:
+
     """Render one video (audio + SRT + MP4) for a single variant. Optionally upload."""
     print(f"\n━━━ Variant: {variant_label} ━━━")
 
@@ -93,18 +112,37 @@ def _render_and_upload(
     print(f"   → {video_path}")
 
     if upload:
-        from pipeline.youtube_upload import upload_short
-        print(f"⑥ YouTube: uploading ({yt_token_env})…")
-        vid = upload_short(
-            video_path, title, description,
-            privacy_status=privacy,
-            refresh_token_env=yt_token_env,
-        )
-        print(f"   Uploaded! https://www.youtube.com/shorts/{vid}")
+        try:
+            from pipeline.youtube_upload import upload_short
+            print(f"⑥ YouTube: uploading ({yt_token_env})…")
+            vid = upload_short(
+                video_path, title, description,
+                privacy_status=privacy,
+                refresh_token_env=yt_token_env,
+            )
+            print(f"   Uploaded! https://www.youtube.com/shorts/{vid}")
+        except Exception as e:
+            print(f"   ❌ YouTube Upload Failed: {e}")
+            print(f"   Video is saved locally at: {video_path}")
     else:
-        print("   (skip upload — pass --upload)")
+        print("   (skip YouTube upload — pass --upload)")
+
+    if upload_ig:
+        try:
+            from pipeline.instagram_upload import upload_instagram_reel
+            print(f"⑦ Instagram: uploading…")
+            # Create a suitable caption for IG
+            ig_caption = f"{title}\n\n{description}\n\n#reels #shorts"
+            ig_id = upload_instagram_reel(video_path, ig_caption)
+            print(f"   Uploaded to Instagram! Post ID: {ig_id}")
+        except Exception as e:
+            print(f"   ❌ Instagram Upload Failed: {e}")
+            print(f"   Video is saved locally at: {video_path}")
+    else:
+        print("   (skip Instagram upload — pass --upload-ig)")
 
     return video_path
+
 
 
 def main() -> None:
@@ -112,7 +150,9 @@ def main() -> None:
     ap.add_argument("--channel", required=True, choices=list_channel_ids())
     ap.add_argument("--topic", default="", help="Optional topic hint for Groq.")
     ap.add_argument("--upload", action="store_true", help="Upload to YouTube after render.")
+    ap.add_argument("--upload-ig", action="store_true", help="Upload to Instagram Reels after render.")
     ap.add_argument("--privacy", default="private", choices=["private", "unlisted", "public"])
+
     args = ap.parse_args()
 
     preset = get_preset(args.channel)
@@ -125,8 +165,27 @@ def main() -> None:
     myth_theme_for_commit: str | None = None
     myth_topic_for_commit: str | None = None
 
-    # Pick a topic: CLI --topic wins; else myth rotation; else random from topic_pool.
+    # Pick a topic: CLI --topic wins; else performance-based; else myth rotation; else random from topic_pool.
     topic_hint = args.topic.strip() or None
+    if not topic_hint:
+        try:
+            print("📊 Fetching channel analytics to find top-performing video...")
+            yt_token_env = preset.get("yt_token_env") or "YT_REFRESH_TOKEN"
+            if preset.get("variants"):
+                yt_token_env = preset["variants"][0].get("yt_token_env", "YT_REFRESH_TOKEN")
+            
+            youtube = get_authenticated_service(yt_token_env)
+            top_videos = get_top_videos(youtube, limit=3)
+            if top_videos:
+                # Pick a random video from the top 3 to avoid creating the EXACT same topic every time
+                inspiration = random.choice(top_videos)
+                print(f"📈 Found inspiration! Top video: '{inspiration['title']}' ({inspiration['views']} views)")
+                topic_hint = f"Make a story similar to our top performing video: '{inspiration['title']}'. It was about: {inspiration['description']}"
+            else:
+                print("⚠️ No top videos found (or channel empty). Falling back to presets.")
+        except Exception as e:
+            print(f"⚠️ Failed to fetch channel analytics: {e}. Falling back to presets.")
+
     if not topic_hint:
         if preset.get("topic_rotation") == "myth":
             from pipeline.myth_topics import pick_myth_topic
@@ -199,24 +258,37 @@ def main() -> None:
 
     # ── 4-6. Render (per variant) ────────────────────────────────────
     if variants:
-        for v in variants:
-            node = pack["variants"][v["lang"]]
-            _render_and_upload(
-                variant_label=v["label"],
-                narration=node["full_narration"],
-                title=node["youtube_title"],
-                description=node.get("youtube_description", ""),
-                voice=v.get("tts_voice"),
-                font_file=v.get("caption_font", "CreepsterCaps.ttf"),
-                font_name=v.get("caption_font_name", "Creepster"),
-                image_paths=image_paths,
-                run_dir=run_dir,
-                suffix=f"_{v['lang']}",
-                upload=args.upload,
-                privacy=args.privacy,
-                yt_token_env=v.get("yt_token_env", "YT_REFRESH_TOKEN"),
-            )
+        print("④-⑥ Rendering variants in parallel…")
+        with ThreadPoolExecutor(max_workers=min(len(variants), 4)) as executor:
+            futures = []
+            for v in variants:
+                node = pack["variants"][v["lang"]]
+                futures.append(executor.submit(
+                    _render_and_upload,
+                    variant_label=v["label"],
+                    narration=node["full_narration"],
+                    title=node["youtube_title"],
+                    description=node.get("youtube_description", ""),
+                    voice=v.get("tts_voice"),
+                    font_file=v.get("caption_font", "CreepsterCaps.ttf"),
+                    font_name=v.get("caption_font_name", "Creepster"),
+                    image_paths=image_paths,
+                    run_dir=run_dir,
+                    suffix=f"_{v['lang']}",
+                    upload=args.upload,
+                    upload_ig=args.upload_ig,
+                    privacy=args.privacy,
+                    yt_token_env=v.get("yt_token_env", "YT_REFRESH_TOKEN"),
+                ))
+            
+            # Wait for all to complete
+            for future in futures:
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"❌ Variant rendering failed: {e}")
     else:
+
         primary_video_path = _render_and_upload(
             variant_label=preset.get("language", "en"),
             narration=narration,
@@ -229,9 +301,11 @@ def main() -> None:
             run_dir=run_dir,
             suffix="",
             upload=args.upload,
+            upload_ig=args.upload_ig,
             privacy=args.privacy,
             yt_token_env=preset.get("yt_token_env") or "YT_REFRESH_TOKEN",
         )
+
 
     # ── 7. History ───────────────────────────────────────────────────
     summary = " ".join(history_narration.split()[:25]) + "…"

@@ -199,6 +199,39 @@ PRESETS: dict[str, ChannelPreset] = {
             "urban legends debunked", "numbers with dark histories",
         ],
     },
+    "telugu_facts": {
+        "id": "telugu_facts",
+        "label": "Mind-blowing facts Short in Telugu",
+        "language": "te",
+        "tts_voice": "te-IN-ShrutiNeural",
+        "caption_font": "NotoSansTelugu-Bold.ttf",
+        "caption_font_name": "Noto Sans Telugu",
+        "yt_token_env": "YT_REFRESH_TOKEN_TE",
+        "groq_system_hint": (
+            "You write punchy YouTube Shorts about surprising, verified facts — exclusively in Telugu script. "
+            "STRUCTURE: hook fact in opening, supporting facts in the middle, punchline + takeaway at end. "
+            "TONE: energetic, curious, confident. No clickbait lies. "
+            "IMAGE PROMPT RULE: write image prompts in ENGLISH only. Describe real photographs or documentary stills. "
+            "Use real-world subjects, real lighting, real environments. "
+            "TELUGU LENGTH: full_narration must be long-form — aim 120-160 Telugu words. Make sure to use engaging spoken Telugu."
+        ),
+        "segment_count": 5,
+        "image_style_suffix": (
+            ", photorealistic documentary photography, cinematic lighting, ultra detailed, "
+            "8k, sharp focus, professional camera, National Geographic style, realistic textures, "
+            "natural colors, depth of field, no text, no captions, no watermark, no logos"
+        ),
+        "image_negative_prompt": (
+            "cartoon, anime, illustration, painting, drawing, sketch, 3d render, cgi, "
+            "stylized, flat colors, low quality, blurry, watermark, logo, text, signature, "
+            "deformed, ugly, extra limbs, mutated"
+        ),
+        "topic_pool": [
+            "black holes", "neutron stars", "the Big Bang", "deep sea creatures", 
+            "extinct animals", "brain illusions", "memory tricks", "Ancient Egypt secrets",
+            "Mughal secrets", "India's unsolved mysteries", "unknown Indian inventions"
+        ],
+    },
     "hindi_myth": {
         "id": "hindi_myth",
         "label": "Hindi mythology & devotion Shorts (Ganesha → Shiva → … by IST day)",
