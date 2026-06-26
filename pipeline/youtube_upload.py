@@ -84,6 +84,13 @@ def _get_creds(refresh_token_env: str = "YT_REFRESH_TOKEN") -> Credentials:
                 f"   Underlying error: {e}"
             ) from e
         return creds
+
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        raise RuntimeError(
+            "❌ Missing YouTube credentials in GitHub Secrets!\n"
+            "Ensure YT_CLIENT_ID, YT_CLIENT_SECRET_VALUE, and YT_REFRESH_TOKEN are set in repo secrets."
+        )
+
     client_secret = Path(os.environ.get("YT_CLIENT_SECRET", "secrets/client_secret.json"))
     token = Path(os.environ.get("YT_TOKEN", "secrets/youtube_token.json"))
     return _creds_from_files(client_secret, token)

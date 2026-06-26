@@ -121,25 +121,36 @@ STRICT RULES:
 - The narration must flow naturally as one spoken piece (no "segment 1", "segment 2" etc).
 """
 
-    data = _call_groq(preset, user)
-
-    narration = data.get("full_narration", "").strip()
-    if not narration:
-        raise ValueError("Missing full_narration")
-
-    prompts = data.get("image_prompts")
-    if not isinstance(prompts, list) or len(prompts) != n:
-        raise ValueError(f"Expected {n} image_prompts, got {len(prompts or [])}")
-    for i, p in enumerate(prompts):
-        if not isinstance(p, str) or not p.strip():
-            raise ValueError(f"image_prompt {i} is empty")
-
-    word_count = len(narration.split())
     min_words = DEFAULT_MIN_WORDS.get(language, 80)
-    if word_count < min_words:
-        raise ValueError(
-            f"Narration too short ({word_count} words, expected ≥ {min_words} for {language})"
-        )
+    
+    for attempt in range(3):
+        data = _call_groq(preset, user)
+        narration = data.get("full_narration", "").strip()
+        if not narration:
+            if attempt == 2: raise ValueError("Missing full_narration")
+            continue
+
+        prompts = data.get("image_prompts")
+        if not isinstance(prompts, list) or len(prompts) != n:
+            if attempt == 2: raise ValueError(f"Expected {n} image_prompts, got {len(prompts or [])}")
+            continue
+            
+        valid_prompts = True
+        for i, p in enumerate(prompts):
+            if not isinstance(p, str) or not p.strip():
+                valid_prompts = False
+        if not valid_prompts:
+            if attempt == 2: raise ValueError(f"An image_prompt is empty")
+            continue
+
+        word_count = len(narration.split())
+        if word_count < min_words:
+            print(f"      [groq] Attempt {attempt+1} generated {word_count} words (needed {min_words}). Retrying...")
+            if attempt == 2:
+                raise ValueError(f"Narration too short ({word_count} words, expected ≥ {min_words} for {language})")
+            continue
+            
+        break # Success!
 
     return data
 

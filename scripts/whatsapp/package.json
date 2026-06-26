@@ -1,0 +1,14 @@
+{
+  "name": "whatsapp-notifier",
+  "version": "1.0.0",
+  "description": "WhatsApp session-based notifier for kids YT pipeline",
+  "main": "send.js",
+  "scripts": {
+    "setup": "node setup_session.js",
+    "send": "node send.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

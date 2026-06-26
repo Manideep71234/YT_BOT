@@ -332,54 +332,46 @@ PRESETS: dict[str, ChannelPreset] = {
     },
     "ghost_stories": {
         "id": "ghost_stories",
-        "label": "Ghost / horror storytime Short",
+        "label": "Horror Places & Facts Short",
         "groq_system_hint": (
-            "You write spooky ghost story Shorts for YouTube. "
-            "CRITICAL LENGTH RULE: The TOTAL word count across ALL 6 segments MUST be 120-140 words. "
-            "Each segment narration = 2-3 sentences, about 20-25 words per segment. "
-            "This produces 35-45 seconds of audio when read aloud. "
-            "Tone: eerie, suspenseful, creepy but NOT gory or violent. "
-            "Segment 1: hook that stops scrolling. Last segment: chilling twist or unanswered question. "
-            "All stories fictional. Original characters. PG-13. No hashtags in narration."
+            "You write spooky factual YouTube Shorts about real haunted places and historical horror facts. "
+            "CRITICAL LENGTH RULE: The TOTAL word count across ALL 6 segments MUST be 180-220 words. "
+            "This produces about 50-60 seconds of audio when read aloud. "
+            "Tone: eerie, suspenseful, factual, documentary style. "
+            "Segment 1: hook that stops scrolling. Last segment: chilling fact or unanswered question. "
+            "All stories must be based on real locations, real myths, or historical events. No fictional characters. "
+            "No hashtags in narration."
         ),
         "segment_count": 6,
         "image_style_suffix": (
-            ", dark spooky cartoon illustration, eerie atmosphere, creepy stylized art, "
-            "bold outlines, muted haunting colors, horror cartoon aesthetic, ghostly shadows, "
-            "dramatic lighting, sinister mood, professional youtube thumbnail quality, "
-            "no text, no captions, no watermark, no logos"
+            " (Pexels video search query)"
         ),
-        "image_negative_prompt": (
-            "photorealistic, photograph, happy cheerful bright, anime eyes, blurry, "
-            "low quality, watermark, logo, text, title, signature, ugly, grainy, "
-            "gore, blood, nudity, child-unsafe"
-        ),
+        "image_negative_prompt": "",
         "topic_pool": [
-            "a ghost haunting an empty school at night",
-            "a strange presence in a family home",
-            "something unexplained during a picnic in the woods",
-            "a ghost encounter at a friend's sleepover",
-            "a haunted old cabin during a camping trip",
-            "a ghost on a late-night train",
-            "something wrong with the new neighbor's house",
-            "a spirit in grandparents' attic",
-            "an abandoned playground after dark",
-            "a ghost at a roadside motel",
-            "strange events at a wedding venue",
-            "a haunted library after closing",
-            "something watching from the forest edge",
-            "a ghost during a blackout storm",
-            "an eerie presence at a local hospital",
-            "something in the basement nobody talks about",
-            "a ghost on a deserted beach at night",
-            "a haunted elevator in an old building",
-            "a strange figure at a bus stop at 3 AM",
-            "something whispering from an old well",
-            "a ghost in a classroom after everyone left",
-            "a haunted antique bought from a flea market",
-            "a spirit tied to an old family photograph",
-            "something in the fog on a mountain road",
-            "a ghost at a summer camp",
+            "Aokigahara Forest mysteries",
+            "The Catacombs of Paris secrets",
+            "Bhangarh Fort curse",
+            "Winchester Mystery House",
+            "Poveglia Island plague history",
+            "The Cecil Hotel dark past",
+            "Hoia Baciu Forest paranormal activity",
+            "Eastern State Penitentiary ghosts",
+            "Tower of London hauntings",
+            "Isla de las Muñecas (Island of the Dolls)",
+            "Château de Brissac",
+            "Stanley Hotel ghost stories",
+            "Edinburgh Castle hauntings",
+            "Monte Cristo Homestead",
+            "Myrtles Plantation",
+            "Akershus Fortress",
+            "Highgate Cemetery vampire panic",
+            "St. Augustine Lighthouse",
+            "The Forbidden City ghosts",
+            "Kuldhara Village Rajasthan",
+            "Dumas Beach haunted whispers",
+            "Dow Hill of Kurseong",
+            "Sathyamangalam Wildlife Sanctuary secrets",
+            "Shaniwar Wada ghost sightings",
         ],
     },
 }

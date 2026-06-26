@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 .venv/
 output/
 .env
@@ -6,3 +6,10 @@ output/
 *.pem
 secrets/
 __pycache__/
+scripts/whatsapp/wwebjs_auth/
+scripts/whatsapp/wwebjs_auth.zip
+scripts/whatsapp/node_modules/
+wwebjs_auth.zip
+implementation_plan*
+*.log
+*.webm

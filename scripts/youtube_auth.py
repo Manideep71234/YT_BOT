@@ -47,9 +47,9 @@ def main() -> None:
         )
         sys.exit(1)
 
-    print("Opening browser for Google OAuth…")
+    print("Generating Google OAuth URL...", flush=True)
     flow = InstalledAppFlow.from_client_secrets_file(str(client_secret), SCOPES)
-    creds = flow.run_local_server(port=0)
+    creds = flow.run_local_server(port=0, open_browser=False)
 
     SECRETS.mkdir(parents=True, exist_ok=True)
     token_out.write_text(creds.to_json(), encoding="utf-8")

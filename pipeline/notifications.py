@@ -4,6 +4,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
 import urllib.parse
+import subprocess
+import base64
+import zipfile
+import shutil
 
 def send_email_notification(subject, body):
     sender = os.getenv("EMAIL_SENDER")
@@ -36,27 +40,50 @@ def send_email_notification(subject, body):
 
 def send_whatsapp_message(text):
     phone_number = os.getenv("WHATSAPP_PHONE_NUMBER")
-    api_key = os.getenv("WHATSAPP_API_KEY")
-
-    if not phone_number or not api_key or phone_number == "+1234567890":
-        print("WhatsApp configuration is missing. Cannot send notification.")
+    
+    if not phone_number:
+        print("WHATSAPP_PHONE_NUMBER is missing. Cannot send notification.")
         return False
 
     phone_number = phone_number.replace("+", "")
-    encoded_text = urllib.parse.quote(text)
     
-    url = f"https://api.callmebot.com/whatsapp.php?phone={phone_number}&text={encoded_text}&apikey={api_key}"
+    # Use the wwebjs local session script
+    wa_dir = os.path.join("scripts", "whatsapp")
     
+    wa_session_b64 = os.getenv("WA_SESSION_B64")
+    auth_dir = os.path.join(wa_dir, "wwebjs_auth")
+    
+    # Extract session token from B64 if provided and auth doesn't exist
+    if wa_session_b64 and not os.path.exists(auth_dir):
+        print("[whatsapp] Decoding WA_SESSION_B64 token...")
+        zip_path = os.path.join(wa_dir, "wwebjs_auth.zip")
+        try:
+            with open(zip_path, "wb") as f:
+                f.write(base64.b64decode(wa_session_b64))
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(wa_dir)
+            os.remove(zip_path)
+            print("[whatsapp] Successfully extracted session token.")
+        except Exception as e:
+            print(f"[whatsapp] Failed to decode session token: {e}")
+            
+    if not os.path.exists(os.path.join(wa_dir, "node_modules")):
+        print("[whatsapp] Installing node deps...")
+        subprocess.run(["npm", "install", "--prefix", wa_dir], capture_output=True, check=True)
+
     try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            print("WhatsApp notification sent successfully!")
+        result = subprocess.run(
+            ["node", "send.js", text, phone_number],
+            cwd=wa_dir, capture_output=True, text=True, encoding="utf-8", timeout=90
+        )
+        if result.returncode == 0:
+            print("WhatsApp notification sent successfully via wwebjs!")
             return True
         else:
-            print(f"Failed to send WhatsApp message. Response: {response.text}")
+            print(f"Failed to send WhatsApp message. Error: {result.stderr}")
             return False
     except Exception as e:
-        print(f"Error sending WhatsApp message: {e}")
+        print(f"Error executing WhatsApp send.js: {e}")
         return False
 
 def send_telegram_message(text):

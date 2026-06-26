@@ -60,9 +60,10 @@ load_dotenv(REPO_ROOT / "scripts" / ".env")
 
 from pipeline.captions import build_srt
 from pipeline.channel_presets import get_preset, list_channel_ids
-from pipeline.edge_tts_synth import synthesize_full
+from pipeline.voice_gen import synthesize_full
 from pipeline.groq_script import generate_short_pack
-from pipeline.images import DEFAULT_NEGATIVE, full_visual_prompt, save_scene_image
+from pipeline.videos import fetch_scene_video
+from pipeline.bgm import ensure_bgm_downloaded
 from pipeline.render_short import render_vertical_short
 from pipeline.story_history import save_title
 from pipeline.youtube_analytics import get_authenticated_service, get_top_videos
@@ -105,8 +106,14 @@ def _render_and_upload(
 
     video_path = run_dir / f"short{suffix}.mp4"
     print(f"⑤ FFmpeg: rendering 1080×1920 (font={font_name})…")
+    
+    # Fetch BGM
+    bgm_path = run_dir / "bgm.mp3"
+    ensure_bgm_downloaded(bgm_path)
+    
     render_vertical_short(
         image_paths, total_dur, audio_path, srt_path, video_path,
+        bgm_path=bgm_path,
         font_file=font_file, font_name=font_name,
     )
     print(f"   → {video_path}")
@@ -121,9 +128,26 @@ def _render_and_upload(
                 refresh_token_env=yt_token_env,
             )
             print(f"   Uploaded! https://www.youtube.com/shorts/{vid}")
+            
+            try:
+                from pipeline.notifications import send_whatsapp_message
+                msg = f"✅ Kids YouTube Shorts Pipeline — Published!\n\n📽️ Title: {title}\n🔗 URL: https://www.youtube.com/shorts/{vid}"
+                send_whatsapp_message(msg)
+            except Exception as notify_err:
+                print(f"   ⚠ Failed to send WhatsApp notification: {notify_err}")
+
         except Exception as e:
             print(f"   ❌ YouTube Upload Failed: {e}")
             print(f"   Video is saved locally at: {video_path}")
+            
+            try:
+                from pipeline.notifications import send_whatsapp_message
+                msg = f"❌ Kids YouTube Shorts Pipeline — FAILED!\n\n📽️ Title: {title}\n⚠ Error: {e}"
+                send_whatsapp_message(msg)
+            except Exception:
+                pass
+                
+            raise  # Re-raise so the thread/script actually fails
     else:
         print("   (skip YouTube upload — pass --upload)")
 
@@ -236,25 +260,20 @@ def main() -> None:
     w = int(os.environ.get("DEAPI_IMAGE_WIDTH", "768"))
     h = int(os.environ.get("DEAPI_IMAGE_HEIGHT", "768"))
     style_suffix = preset.get("image_style_suffix")
-    negative = (
-        os.environ.get("IMAGE_NEGATIVE_PROMPT")
-        or preset.get("image_negative_prompt")
-        or DEFAULT_NEGATIVE
-    )
-    cooldown = int(os.environ.get("DEAPI_COOLDOWN", "10"))
 
-    print(f"③ Images: {len(image_prompts)} scenes ({cooldown}s cooldown)…")
+    # ── 2. Videos via Pexels (generated ONCE, shared by all variants) ──
+    n_prompts = len(image_prompts)
+    print(f"③ Videos: {n_prompts} scenes…")
     image_paths: list[Path] = []
-    for i, ip in enumerate(image_prompts):
-        prompt = full_visual_prompt(ip, style_suffix=style_suffix)
-        out = img_dir / f"scene_{i + 1:02d}.png"
-        st, detail = save_scene_image(i + 1, prompt, out, width=w, height=h, negative=negative)
-        if st != "ok":
-            raise RuntimeError(f"Image {i + 1} failed: {detail}")
-        print(f"   scene {i + 1}/{len(image_prompts)}: {detail}")
-        image_paths.append(out)
-        if i < len(image_prompts) - 1:
-            time.sleep(cooldown)
+    style = preset.get("image_style_suffix", "")
+
+    for i, p in enumerate(image_prompts):
+        v_path = img_dir / f"scene_{i + 1:02d}.mp4"
+        print(f"   scene {i + 1}/{n_prompts}: video")
+        
+        # Combine prompt with style suffix for Pexels search query
+        fetch_scene_video(p + style, v_path)
+        image_paths.append(v_path)
 
     # ── 4-6. Render (per variant) ────────────────────────────────────
     if variants:
@@ -287,6 +306,8 @@ def main() -> None:
                     future.result()
                 except Exception as e:
                     print(f"❌ Variant rendering failed: {e}")
+                    import sys
+                    sys.exit(1)
     else:
 
         primary_video_path = _render_and_upload(

@@ -1,9 +1,10 @@
-"""FFmpeg: images + audio + captions → vertical Short MP4 (9:16).
+"""FFmpeg: videos + audio + captions + BGM → vertical Short MP4 (9:16).
 
 Effects:
-  - Ken Burns zoom (alternating zoom-in / zoom-out per scene)
   - Fadeblack crossfade between scenes (horror vibe)
   - Creepster font captions at the bottom
+  - Auto-loops and crops horizontal videos to fit perfectly
+  - Mixes scary background music with the voiceover
 """
 from __future__ import annotations
 
@@ -18,23 +19,23 @@ DEFAULT_FONT_NAME = "Creepster"
 
 FPS = 30
 FADE_DUR = 0.5
-ZOOM_AMOUNT = 0.08
 
 
 def render_vertical_short(
-    image_paths: list[Path],
+    video_paths: list[Path],
     total_duration: float,
     audio_path: Path,
     srt_path: Path,
     out_video: Path,
     *,
+    bgm_path: Path | None = None,
     width: int = 1080,
     height: int = 1920,
     font_file: str = DEFAULT_FONT_FILE,
     font_name: str = DEFAULT_FONT_NAME,
 ) -> None:
-    if not image_paths:
-        raise ValueError("No images")
+    if not video_paths:
+        raise ValueError("No videos")
     if not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg not found; install it (brew install ffmpeg)")
 
@@ -43,55 +44,30 @@ def render_vertical_short(
     tmp = out_video.parent / "_tmp_render"
     tmp.mkdir(parents=True, exist_ok=True)
 
-    n = len(image_paths)
+    n = len(video_paths)
     clip_dur = (total_duration + (n - 1) * FADE_DUR) / n if n > 1 else total_duration
-    frames_per_clip = max(int(clip_dur * FPS), 2)
 
-    # ── 1. Pre-scale images ──────────────────────────────────────────
-    for i, src in enumerate(image_paths):
-        dst = tmp / f"img_{i + 1:02d}.png"
-        subprocess.run(
-            [
-                "ffmpeg", "-y", "-hide_banner", "-loglevel", "warning",
-                "-i", str(src),
-                "-vf", (f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
-                        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black"),
-                "-update", "1", "-frames:v", "1",
-                str(dst),
-            ],
-            check=True,
-        )
-
-    # ── 2. Generate zoompan clips ────────────────────────────────────
-    for i in range(n):
-        src_img = tmp / f"img_{i + 1:02d}.png"
+    # ── 1. Format and Loop Video Clips ───────────────────────────────
+    for i, src in enumerate(video_paths):
         clip = tmp / f"clip_{i + 1:02d}.mp4"
-        zoom_rate = ZOOM_AMOUNT / frames_per_clip
-
-        if i % 2 == 0:
-            zoom_expr = f"min(zoom+{zoom_rate:.8f},{1 + ZOOM_AMOUNT})"
-        else:
-            zoom_expr = f"if(eq(on,1),{1 + ZOOM_AMOUNT},max(zoom-{zoom_rate:.8f},1.0))"
-
-        vf = (
-            f"zoompan=z='{zoom_expr}':"
-            f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-            f"d={frames_per_clip}:s={width}x{height}:fps={FPS},"
-            f"format=yuv420p"
-        )
-
+        
+        vf = (f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+              f"crop={width}:{height},setsar=1,fps={FPS}")
+              
         subprocess.run(
             [
                 "ffmpeg", "-y", "-hide_banner", "-loglevel", "warning",
-                "-i", str(src_img),
+                "-stream_loop", "-1", "-i", str(src),
+                "-t", f"{clip_dur:.4f}",
                 "-vf", vf,
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "15",
+                "-an", # Remove original audio from stock video
                 str(clip),
             ],
             check=True,
         )
 
-    # ── 3. Prepare subtitles + font ──────────────────────────────────
+    # ── 2. Prepare subtitles + font ──────────────────────────────────
     shutil.copyfile(srt_path, tmp / "captions.srt")
 
     font_path = FONTS_DIR / font_file
@@ -117,18 +93,23 @@ def render_vertical_short(
         f"MarginV=15,MarginL=20,MarginR=20"
     )
 
-    # ── 4. Build xfade chain + subtitles ─────────────────────────────
+    # ── 3. Build xfade chain + subtitles + audio mix ─────────────────
     inputs: list[str] = []
     for i in range(n):
         inputs += ["-i", f"clip_{i + 1:02d}.mp4"]
+    
     inputs += ["-i", str(audio_path.resolve())]
+    if bgm_path:
+        # Re-loop the BGM in case it's shorter than the video
+        inputs += ["-stream_loop", "-1", "-i", str(bgm_path.resolve())]
 
     filter_parts: list[str] = []
 
+    # Visual filter chain
     if n == 1:
         filter_parts.append(
             f"[0:v]subtitles=captions.srt{fontsdir_arg}:"
-            f"force_style='{force_style}'[final]"
+            f"force_style='{force_style}'[v_final]"
         )
     else:
         prev = "[0:v]"
@@ -143,8 +124,17 @@ def render_vertical_short(
             prev = out
         filter_parts.append(
             f"{prev}subtitles=captions.srt{fontsdir_arg}:"
-            f"force_style='{force_style}'[final]"
+            f"force_style='{force_style}'[v_final]"
         )
+        
+    # Audio filter chain
+    voice_in = f"[{n}:a]"
+    if bgm_path:
+        bgm_in = f"[{n+1}:a]"
+        filter_parts.append(f"{voice_in}volume=1.5[v1];{bgm_in}volume=0.15[v2];[v1][v2]amix=inputs=2:duration=first:dropout_transition=2[a_final]")
+        audio_map = ["[a_final]"]
+    else:
+        audio_map = [voice_in]
 
     fc = ";\n".join(filter_parts)
 
@@ -152,7 +142,7 @@ def render_vertical_short(
         "ffmpeg", "-y", "-hide_banner", "-loglevel", "warning",
         *inputs,
         "-filter_complex", fc,
-        "-map", "[final]", "-map", f"{n}:a",
+        "-map", "[v_final]", "-map", audio_map[0],
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
