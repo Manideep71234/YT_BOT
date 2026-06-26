@@ -60,7 +60,7 @@ load_dotenv(REPO_ROOT / "scripts" / ".env")
 
 from pipeline.captions import build_srt
 from pipeline.channel_presets import get_preset, list_channel_ids
-from pipeline.voice_gen import synthesize_full
+from pipeline.edge_tts_synth import synthesize_full
 from pipeline.groq_script import generate_short_pack
 from pipeline.videos import fetch_scene_video
 from pipeline.bgm import ensure_bgm_downloaded
