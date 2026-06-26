@@ -24,7 +24,6 @@ env:
   PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
   PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
   WHATSAPP_PHONE_NUMBER: ${{ secrets.WHATSAPP_PHONE_NUMBER }}
-  WA_SESSION_B64: ${{ secrets.WA_SESSION_B64 }}
   EDGE_TTS_VOICE: "en-US-ChristopherNeural"
 
 jobs:
@@ -46,6 +45,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Fetch WhatsApp Session
+        run: |
+          git fetch origin bot-session-data
+          git checkout origin/bot-session-data -- wwebjs_auth.zip
+          mkdir -p scripts/whatsapp
+          mv wwebjs_auth.zip scripts/whatsapp/
 
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
