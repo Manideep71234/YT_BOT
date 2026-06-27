@@ -38,6 +38,9 @@ def send_email_notification(subject, body):
         print(f"Failed to send email notification: {e}")
         return False
 
+import threading
+_wa_lock = threading.Lock()
+
 def send_whatsapp_message(text):
     phone_number = os.getenv("WHATSAPP_PHONE_NUMBER")
     
@@ -76,20 +79,21 @@ def send_whatsapp_message(text):
         print("[whatsapp] Installing node deps...")
         subprocess.run(["npm", "install", "--prefix", wa_dir], capture_output=True, check=True)
 
-    try:
-        result = subprocess.run(
-            ["node", "send.js", text, phone_number],
-            cwd=wa_dir, capture_output=True, text=True, encoding="utf-8", timeout=90
-        )
-        if result.returncode == 0:
-            print("WhatsApp notification sent successfully via wwebjs!")
-            return True
-        else:
-            print(f"Failed to send WhatsApp message. Error: {result.stderr}")
+    with _wa_lock:
+        try:
+            result = subprocess.run(
+                ["node", "send.js", text, phone_number],
+                cwd=wa_dir, capture_output=True, text=True, encoding="utf-8", timeout=90
+            )
+            if result.returncode == 0:
+                print("WhatsApp notification sent successfully via wwebjs!")
+                return True
+            else:
+                print(f"Failed to send WhatsApp message. Error: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"Error executing WhatsApp send.js: {e}")
             return False
-    except Exception as e:
-        print(f"Error executing WhatsApp send.js: {e}")
-        return False
 
 def send_telegram_message(text):
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
