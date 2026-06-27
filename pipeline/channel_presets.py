@@ -54,7 +54,7 @@ PRESETS: dict[str, ChannelPreset] = {
                 "tts_voice": "te-IN-ShrutiNeural",
                 "caption_font": "BebasNeue-Regular.ttf",
                 "caption_font_name": "Bebas Neue",
-                "yt_token_env": "YT_REFRESH_TOKEN_TE",
+                "yt_token_env": "YT_REFRESH_TOKEN",
                 "min_words": 30,
             },
             {
@@ -63,8 +63,8 @@ PRESETS: dict[str, ChannelPreset] = {
                 "tts_voice": "en-US-GuyNeural",
                 "caption_font": "BebasNeue-Regular.ttf",
                 "caption_font_name": "Bebas Neue",
-                "yt_token_env": "YT_REFRESH_TOKEN_EN",
-                "min_words": 70,
+                "yt_token_env": "YT_REFRESH_TOKEN",
+                "min_words": 30,
             },
         ],
         "groq_system_hint": (
