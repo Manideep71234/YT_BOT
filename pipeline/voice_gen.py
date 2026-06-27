@@ -35,34 +35,24 @@ def synthesize_full(
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     
-    if lang == "te":
-        print(f"   [voice] Generating via Edge TTS (native Telugu: {voice or 'te-IN-ShrutiNeural'})...")
-        import subprocess
-        subprocess.run([
-            "edge-tts", 
-            "--voice", voice or "te-IN-ShrutiNeural", 
-            "--text", text, 
-            "--write-media", str(out_path)
-        ], check=True)
-    else:
-        # 1. Generate audio using FishAudio
-        from fishaudio import FishAudio
-        from fishaudio.utils import save
-        
-        # Fallback to defaults from bot.py
-        FISH_API_KEY = os.environ.get("FISH_API_KEY", "84e54f3d7bd2483f8f1866f7037c5f58")
-        FISH_VOICE_ID = os.environ.get("FISH_VOICE_ID", "9c335d29248c49c9960e13b0b8b3ee6d")
-        
-        print(f"   [voice] Generating via FishAudio (Voice ID: {FISH_VOICE_ID})...")
-        client = FishAudio(api_key=FISH_API_KEY)
-        
-        audio = client.tts.convert(
-            text=text,
-            reference_id=FISH_VOICE_ID,
-            model="s2.1-pro-free",
-            speed=1.0
-        )
-        save(audio, str(out_path))
+    # 1. Generate audio using FishAudio
+    from fishaudio import FishAudio
+    from fishaudio.utils import save
+    
+    # Fallback to defaults from bot.py
+    FISH_API_KEY = os.environ.get("FISH_API_KEY", "84e54f3d7bd2483f8f1866f7037c5f58")
+    FISH_VOICE_ID = os.environ.get("FISH_VOICE_ID", "9c335d29248c49c9960e13b0b8b3ee6d")
+    
+    print(f"   [voice] Generating via FishAudio (Voice ID: {FISH_VOICE_ID})...")
+    client = FishAudio(api_key=FISH_API_KEY)
+    
+    audio = client.tts.convert(
+        text=text,
+        reference_id=FISH_VOICE_ID,
+        model="s2.1-pro-free",
+        speed=1.0
+    )
+    save(audio, str(out_path))
     
     dur = _ffprobe_duration(out_path)
     
