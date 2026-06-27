@@ -36,6 +36,7 @@ def _fetch_pexels(query: str, out_path: Path, api_key: str) -> Path:
     videos = data.get("videos", [])
     if not videos:
         print(f"      [video] No Pexels results for '{short_query}'. Using fallback.")
+        # pyrefly: ignore [unknown-name]
         return _fetch_fallback_youtube(out_path)
         
     # Pick a random video from top results
