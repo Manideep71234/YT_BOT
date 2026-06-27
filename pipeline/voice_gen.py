@@ -41,7 +41,12 @@ def synthesize_full(
     
     # Fallback to defaults from bot.py
     FISH_API_KEY = os.environ.get("FISH_API_KEY", "84e54f3d7bd2483f8f1866f7037c5f58")
-    FISH_VOICE_ID = os.environ.get("FISH_VOICE_ID", "9c335d29248c49c9960e13b0b8b3ee6d")
+    
+    # Route voice IDs based on language
+    if lang == "te":
+        FISH_VOICE_ID = os.environ.get("FISH_VOICE_ID_TE", "a5e500bec87a41cfa1751ef9a49190bb")
+    else:
+        FISH_VOICE_ID = os.environ.get("FISH_VOICE_ID_EN", "9c335d29248c49c9960e13b0b8b3ee6d")
     
     print(f"   [voice] Generating via FishAudio (Voice ID: {FISH_VOICE_ID})...")
     client = FishAudio(api_key=FISH_API_KEY)
