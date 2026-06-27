@@ -56,30 +56,30 @@ def send_whatsapp_message(text):
     auth_dir = os.path.join(wa_dir, "wwebjs_auth")
     zip_path = os.path.join(wa_dir, "wwebjs_auth.zip")
     
-    # Extract session token from B64 if provided and auth doesn't exist
-    if wa_session_b64 and not os.path.exists(auth_dir):
-        print("[whatsapp] Decoding WA_SESSION_B64 token...")
-        zip_bytes = base64.b64decode(wa_session_b64)
-        with open(zip_path, 'wb') as f:
-            f.write(zip_bytes)
-    
-    # Extract the zip file if it exists (handles both B64 and GitHub repo downloads)
-    if os.path.exists(zip_path) and not os.path.exists(auth_dir):
-        print("[whatsapp] Extracting session from local zip...")
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(wa_dir)
-            os.remove(zip_path)
-            print("[whatsapp] Successfully extracted session token.")
-        except Exception as e:
-            print(f"[whatsapp] Failed to extract session token: {e}")
-
-    # Ensure dependencies are installed
-    if not os.path.exists(os.path.join(wa_dir, "node_modules")):
-        print("[whatsapp] Installing node deps...")
-        subprocess.run(["npm", "install", "--prefix", wa_dir], capture_output=True, check=True)
-
     with _wa_lock:
+        # Extract session token from B64 if provided and auth doesn't exist
+        if wa_session_b64 and not os.path.exists(auth_dir):
+            print("[whatsapp] Decoding WA_SESSION_B64 token...")
+            zip_bytes = base64.b64decode(wa_session_b64)
+            with open(zip_path, 'wb') as f:
+                f.write(zip_bytes)
+        
+        # Extract the zip file if it exists (handles both B64 and GitHub repo downloads)
+        if os.path.exists(zip_path) and not os.path.exists(auth_dir):
+            print("[whatsapp] Extracting session from local zip...")
+            try:
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(wa_dir)
+                os.remove(zip_path)
+                print("[whatsapp] Successfully extracted session token.")
+            except Exception as e:
+                print(f"[whatsapp] Failed to extract session token: {e}")
+
+        # Ensure dependencies are installed
+        if not os.path.exists(os.path.join(wa_dir, "node_modules")):
+            print("[whatsapp] Installing node deps...")
+            subprocess.run(["npm", "install", "--prefix", wa_dir], capture_output=True, check=True)
+
         try:
             result = subprocess.run(
                 ["node", "send.js", text, phone_number],
