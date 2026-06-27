@@ -41,7 +41,7 @@ def render_vertical_short(
 
     out_video = Path(out_video)
     out_video.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out_video.parent / "_tmp_render"
+    tmp = out_video.parent / f"_tmp_render_{out_video.stem}"
     tmp.mkdir(parents=True, exist_ok=True)
 
     n = len(video_paths)
