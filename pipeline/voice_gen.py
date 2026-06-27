@@ -50,7 +50,7 @@ def synthesize_full(
         text=text,
         reference_id=FISH_VOICE_ID,
         model="s2.1-pro-free",
-        speed=1.1
+        speed=1.0
     )
     save(audio, str(out_path))
     
@@ -63,13 +63,18 @@ def synthesize_full(
     
     # Provide the text as initial_prompt to heavily bias the model towards outputting the actual script
     # pass language explicitly to avoid auto-detect issues with short clips
-    segments, info = model.transcribe(
-        str(out_path), 
-        beam_size=1, 
-        word_timestamps=True,
-        language=lang,
-        initial_prompt=text[:1000]
-    )
+    transcribe_kwargs = {
+        "beam_size": 1,
+        "word_timestamps": True,
+        "language": lang
+    }
+    
+    if lang == "te":
+        transcribe_kwargs["task"] = "translate"
+    else:
+        transcribe_kwargs["initial_prompt"] = text[:1000]
+
+    segments, info = model.transcribe(str(out_path), **transcribe_kwargs)
     
     words = []
     for seg in segments:
