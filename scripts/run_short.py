@@ -130,20 +130,28 @@ def _render_and_upload(
             print(f"   Uploaded! https://www.youtube.com/shorts/{vid}")
             
             try:
-                from pipeline.notifications import send_whatsapp_message
-                msg = f"✅ Kids YouTube Shorts Pipeline — Published!\n\n📽️ Title: {title}\n🔗 URL: https://www.youtube.com/shorts/{vid}"
+                from pipeline.notifications import send_whatsapp_message, send_telegram_message, send_email_notification
+                msg = f"✅ YouTube Shorts Pipeline — Published!\n\n📽️ Title: {title}\n🔗 URL: https://www.youtube.com/shorts/{vid}"
+                html_msg = f"✅ <b>YouTube Shorts Pipeline — Published!</b>\n\n📽️ <b>Title:</b> {title}\n🔗 <b>URL:</b> https://www.youtube.com/shorts/{vid}"
+                
                 send_whatsapp_message(msg)
+                send_telegram_message(html_msg)
+                send_email_notification(f"✅ Video Uploaded: {title}", msg)
             except Exception as notify_err:
-                print(f"   ⚠ Failed to send WhatsApp notification: {notify_err}")
+                print(f"   ⚠ Failed to send notifications: {notify_err}")
 
         except Exception as e:
             print(f"   ❌ YouTube Upload Failed: {e}")
             print(f"   Video is saved locally at: {video_path}")
             
             try:
-                from pipeline.notifications import send_whatsapp_message
-                msg = f"❌ Kids YouTube Shorts Pipeline — FAILED!\n\n📽️ Title: {title}\n⚠ Error: {e}"
+                from pipeline.notifications import send_whatsapp_message, send_telegram_message, send_email_notification
+                msg = f"❌ YouTube Shorts Pipeline — FAILED!\n\n📽️ Title: {title}\n⚠ Error: {e}"
+                html_msg = f"❌ <b>YouTube Shorts Pipeline — FAILED!</b>\n\n📽️ <b>Title:</b> {title}\n⚠ <b>Error:</b> {e}"
+                
                 send_whatsapp_message(msg)
+                send_telegram_message(html_msg)
+                send_email_notification(f"❌ Upload Failed: {title}", msg)
             except Exception:
                 pass
                 
