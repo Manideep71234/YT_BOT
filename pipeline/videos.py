@@ -61,12 +61,13 @@ def _fetch_fallback_ffmpeg(out_path: Path) -> Path:
         
         # Ensure ffmpeg is in PATH
         if "ffmpeg" not in os.environ.get("PATH", "").lower():
-            os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
+            if os.name == 'nt':
+                os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
             
         cmd = [
             "ffmpeg", "-y", "-hide_banner", "-loglevel", "warning",
             "-f", "lavfi",
-            "-i", "color=c=black:s=1080x1920:d=10",
+            "-i", "color=c=darkred:s=1080x1920:d=10",
             "-vf", "noise=alls=15:allf=t+u, vignette=PI/4",
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
             "-pix_fmt", "yuv420p",

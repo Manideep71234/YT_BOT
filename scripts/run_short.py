@@ -60,7 +60,7 @@ load_dotenv(REPO_ROOT / "scripts" / ".env")
 
 from pipeline.captions import build_srt
 from pipeline.channel_presets import get_preset, list_channel_ids
-from pipeline.edge_tts_synth import synthesize_full
+from pipeline.voice_gen import synthesize_full
 from pipeline.groq_script import generate_short_pack
 from pipeline.videos import fetch_scene_video
 from pipeline.bgm import ensure_bgm_downloaded
@@ -92,8 +92,9 @@ def _render_and_upload(
     print(f"\n━━━ Variant: {variant_label} ━━━")
 
     audio_path = run_dir / f"voiceover{suffix}.mp3"
-    print(f"② Edge TTS ({voice or 'default'})…")
-    total_dur, sentence_timings = synthesize_full(narration, audio_path, voice=voice)
+    print(f"② FishAudio TTS…")
+    lang = suffix.strip("_") if suffix else None
+    total_dur, sentence_timings = synthesize_full(narration, audio_path, voice=voice, lang=lang)
     print(f"   Audio: {total_dur:.1f}s ({len(sentence_timings)} sentences tracked)")
     if total_dur > 55:
         print(f"   ⚠ Audio is {total_dur:.0f}s — target is 30-45s")
@@ -109,7 +110,6 @@ def _render_and_upload(
     
     # Fetch BGM
     bgm_path = run_dir / "bgm.mp3"
-    ensure_bgm_downloaded(bgm_path)
     
     render_vertical_short(
         image_paths, total_dur, audio_path, srt_path, video_path,
@@ -274,6 +274,11 @@ def main() -> None:
         # Combine prompt with style suffix for Pexels search query
         fetch_scene_video(p + style, v_path)
         image_paths.append(v_path)
+
+    # ── 3.5 Fetch BGM (Shared across variants) ───────────────────────
+    bgm_path = run_dir / "bgm.mp3"
+    print("   [bgm] Fetching background music...")
+    ensure_bgm_downloaded(bgm_path)
 
     # ── 4-6. Render (per variant) ────────────────────────────────────
     if variants:

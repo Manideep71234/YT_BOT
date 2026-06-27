@@ -46,27 +46,44 @@ class ChannelPreset(TypedDict, total=False):
 PRESETS: dict[str, ChannelPreset] = {
     "facts": {
         "id": "facts",
-        "label": "Mind-blowing facts Short (English)",
-        "language": "en",
-        "tts_voice": "en-US-GuyNeural",
-        "caption_font": "BebasNeue-Regular.ttf",
-        "caption_font_name": "Bebas Neue",
-        "yt_token_env": "YT_REFRESH_TOKEN_EN",
-        "min_words": 70,
+        "label": "Mind-blowing facts Short (bilingual — Telugu + English)",
+        "variants": [
+            {
+                "lang": "te",
+                "label": "Telugu",
+                "tts_voice": "te-IN-ShrutiNeural",
+                "caption_font": "NotoSansTelugu-Bold.ttf",
+                "caption_font_name": "Noto Sans Telugu",
+                "yt_token_env": "YT_REFRESH_TOKEN_TE",
+                "min_words": 30,
+            },
+            {
+                "lang": "en",
+                "label": "English",
+                "tts_voice": "en-US-GuyNeural",
+                "caption_font": "BebasNeue-Regular.ttf",
+                "caption_font_name": "Bebas Neue",
+                "yt_token_env": "YT_REFRESH_TOKEN_EN",
+                "min_words": 70,
+            },
+        ],
         "groq_system_hint": (
-            "You write punchy YouTube Shorts about surprising, verified facts. "
+            "You write punchy YouTube Shorts about surprising, verified facts — in MULTIPLE languages. "
+            "The same fact will be published as separate videos on different language channels. "
             "STRUCTURE: hook fact in opening, supporting facts in the middle, punchline + takeaway at end. "
             "TONE: energetic, curious, confident. No clickbait lies. "
-            "Each fact must be broadly accurate; if unsure, use safer wording like "
-            "'scientists believe' or 'some research suggests'. "
+            "Each fact must be broadly accurate; if unsure, use safer wording like 'scientists believe' or 'some research suggests'. "
             "No medical advice. No hashtags inside narration. Original phrasing only. "
             "IMAGE PROMPT RULE: write image prompts in ENGLISH only. Describe real photographs or documentary stills. "
             "Use real-world subjects, real lighting, real environments. NEVER write 'cartoon', 'illustration', "
             "'anime', or 'stylized'. Examples: 'a real octopus underwater in clear blue ocean, sunlight rays', "
-            "'close-up macro photo of a honeybee on a yellow flower', "
-            "'wide shot of Saturn V rocket launching at night with flames'. "
-            "ENGLISH LENGTH: full_narration must be long-form — "
-            "aim 120-155 English words (never a short teaser); include hook, 3-4 developed beats with examples, "
+            "'close-up macro photo of a honeybee on a yellow flower'. "
+            "BILINGUAL RULE: the SAME story/facts must be expressed naturally in each language — "
+            "do not literally translate word-for-word. For Telugu, use conversational, grammatically correct phrasing (no broken/robotic translation). "
+            "TELUGU LENGTH: variants.te.full_narration should be long-form — "
+            "aim ~120-150 Telugu words with rich detail and connective phrases so the voiceover is substantial (~45-60 seconds). "
+            "ENGLISH LENGTH: variants.en.full_narration must be long-form too — "
+            "aim 120-155 English words; include hook, 3-4 developed beats with examples, "
             "and a strong closing line so the English voiceover is ~40-50 seconds."
         ),
         "segment_count": 5,

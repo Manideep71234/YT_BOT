@@ -29,7 +29,7 @@ def _ffprobe_duration(path: Path) -> float:
 
 
 def synthesize_full(
-    text: str, out_path: Path, voice: str | None = None,
+    text: str, out_path: Path, voice: str | None = None, lang: str | None = None
 ) -> tuple[float, list[SentenceTiming]]:
     """TTS the full narration using FishAudio and align with faster-whisper."""
     out_path = Path(out_path)
@@ -59,8 +59,17 @@ def synthesize_full(
     # 2. Extract word-level timestamps using faster-whisper
     print("   [voice] Aligning audio with faster-whisper...")
     from faster_whisper import WhisperModel
-    model = WhisperModel("tiny", device="cpu", compute_type="int8")
-    segments, info = model.transcribe(str(out_path), beam_size=1, word_timestamps=True)
+    model = WhisperModel("small", device="cpu", compute_type="int8")
+    
+    # Provide the text as initial_prompt to heavily bias the model towards outputting the actual script
+    # pass language explicitly to avoid auto-detect issues with short clips
+    segments, info = model.transcribe(
+        str(out_path), 
+        beam_size=1, 
+        word_timestamps=True,
+        language=lang,
+        initial_prompt=text[:1000]
+    )
     
     words = []
     for seg in segments:

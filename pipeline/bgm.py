@@ -11,13 +11,26 @@ from pathlib import Path
 
 # A royalty-free creepy ambient track
 # Kevin MacLeod - "Come Play with Me" or similar spooky ambient
-BGM_YOUTUBE_URL = "https://www.youtube.com/watch?v=1F2cOetVfM4" # Dark Ambient Background Music
+BGM_YOUTUBE_URL = "https://www.youtube.com/watch?v=VsjSb9oFLZI" # Dark Ambient Background Music
 
 def ensure_bgm_downloaded(out_path: Path) -> Path:
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     
     if not out_path.exists():
+        # First check if there's any local music in assets/music
+        import shutil
+        import random
+        
+        music_dir = Path("assets/music")
+        if music_dir.exists() and music_dir.is_dir():
+            local_tracks = list(music_dir.glob("*.mp3")) + list(music_dir.glob("*.wav"))
+            if local_tracks:
+                chosen_track = random.choice(local_tracks)
+                print(f"   [bgm] Found local music track: {chosen_track.name}. Using it instead of downloading!")
+                shutil.copy(chosen_track, out_path)
+                return out_path
+                
         print(f"   [bgm] Downloading real royalty-free horror BGM to {out_path}...")
         
         ffmpeg_bin = r"C:\ffmpeg\bin"
@@ -28,7 +41,7 @@ def ensure_bgm_downloaded(out_path: Path) -> Path:
             sys.executable, "-m", "yt_dlp",
             "-x", "--audio-format", "mp3",
             "-o", str(out_path.with_suffix('')),
-            "https://www.youtube.com/watch?v=xAO3x-Uhfoo"
+            BGM_YOUTUBE_URL
         ]
         
         if os.name == 'nt':
