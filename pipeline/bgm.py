@@ -5,6 +5,7 @@ Downloads a royalty-free creepy background track from YouTube.
 from __future__ import annotations
 
 import os
+import sys
 import subprocess
 from pathlib import Path
 
@@ -24,13 +25,14 @@ def ensure_bgm_downloaded(out_path: Path) -> Path:
             os.environ["PATH"] += os.pathsep + ffmpeg_bin
             
         cmd = [
-            "yt-dlp",
-            "--ffmpeg-location", ffmpeg_bin,
+            sys.executable, "-m", "yt_dlp",
             "-x", "--audio-format", "mp3",
             "-o", str(out_path.with_suffix('')),
-            # "xAO3x-Uhfoo" is a royalty free ambient horror track
             "https://www.youtube.com/watch?v=xAO3x-Uhfoo"
         ]
+        
+        if os.name == 'nt':
+            cmd[3:3] = ["--ffmpeg-location", r"C:\ffmpeg\bin"]
         
         try:
             subprocess.run(cmd, check=True)
