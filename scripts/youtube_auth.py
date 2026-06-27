@@ -26,7 +26,10 @@ load_dotenv(REPO_ROOT / ".env")
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly",
+]
 SECRETS = REPO_ROOT / "secrets"
 
 
